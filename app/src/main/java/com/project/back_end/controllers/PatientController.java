@@ -1,9 +1,9 @@
 package com.project.back_end.controllers;
 
-import com.project.back_end.models.Login;
+import com.project.back_end.DTO.Login;
 import com.project.back_end.models.Patient;
 import com.project.back_end.services.PatientService;
-import com.project.back_end.services.Service;
+import com.project.back_end.services.SharedService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +14,9 @@ import java.util.Map;
 public class PatientController {
 
     private final PatientService patientService;
-    private final Service service;
+    private final SharedService service;
 
-    public PatientController(PatientService patientService, Service service) {
+    public PatientController(PatientService patientService, SharedService service) {
         this.patientService = patientService;
         this.service = service;
     }

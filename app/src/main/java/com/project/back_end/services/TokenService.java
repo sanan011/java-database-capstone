@@ -35,40 +35,69 @@ public class TokenService {
         this.patientRepository = patientRepository;
     }
 
-    // Initialize signing key after bean construction
     @PostConstruct
     public void init() {
         this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    /** Generates a JWT token for a user (email or username as subject) */
+    /** * FIXED: Added back the single-string argument version 
+     * Required by SharedService and Patient login
+     */
     public String generateToken(String identifier) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + 7L * 24 * 60 * 60 * 1000); // 7 days
-
         return Jwts.builder()
                 .setSubject(identifier)
-                .setIssuedAt(now)
-                .setExpiration(expiry)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    /** Extracts the identifier (email/username) from a JWT token */
+    /** Overloaded method for DoctorService (using ID and Role) */
+    public String generateToken(Long id, String role) {
+        return Jwts.builder()
+                .setSubject(String.valueOf(id))
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000))
+                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /** Alias for PatientService compatibility */
+    public String extractEmail(String token) {
+        return extractIdentifier(token);
+    }
+
+    /** * FIXED: Changed parserBuilder() to parser() 
+     * This resolves the 'cannot find symbol' error for newer JJWT versions
+     */
     public String extractIdentifier(String token) {
         try {
-            Claims claims = Jwts.parserBuilder()
+            Claims claims = Jwts.parser()
                     .setSigningKey(signingKey)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
             return claims.getSubject();
         } catch (JwtException e) {
-            return null; // Invalid or expired token
+            return null; 
         }
     }
 
-    /** Validates token for a specific user type: admin, doctor, patient */
+    /**
+     * NEW METHOD: Extract ID from token as Long
+     * Used for doctor and patient IDs stored in JWT subject
+     */
+    public Long extractId(String token) {
+        try {
+            String identifier = extractIdentifier(token);
+            if (identifier == null) return null;
+            return Long.parseLong(identifier);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     public boolean validateToken(String token, String userType) {
         try {
             String identifier = extractIdentifier(token);
@@ -89,7 +118,6 @@ public class TokenService {
         }
     }
 
-    /** Retrieves the signing key used for JWT */
     public SecretKey getSigningKey() {
         return signingKey;
     }

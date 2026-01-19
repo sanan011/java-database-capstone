@@ -3,7 +3,7 @@ package com.project.back_end.controllers;
 import com.project.back_end.models.Prescription;
 import com.project.back_end.services.AppointmentService;
 import com.project.back_end.services.PrescriptionService;
-import com.project.back_end.services.Service;
+import com.project.back_end.services.SharedService; // FIXED: Changed Service to SharedService
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,11 +14,11 @@ import java.util.Map;
 public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
-    private final Service service;
+    private final SharedService service; // FIXED: Use SharedService
     private final AppointmentService appointmentService;
 
     public PrescriptionController(PrescriptionService prescriptionService,
-                                  Service service,
+                                  SharedService service, // FIXED: Use SharedService
                                   AppointmentService appointmentService) {
         this.prescriptionService = prescriptionService;
         this.service = service;
@@ -27,7 +27,6 @@ public class PrescriptionController {
 
     /**
      * Save a new prescription
-     * Endpoint: POST /{token}
      */
     @PostMapping("/{token}")
     public ResponseEntity<Map<String, String>> savePrescription(
@@ -41,8 +40,8 @@ public class PrescriptionController {
                     .body(Map.of("message", "Invalid or expired token"));
         }
 
-        // Update appointment status to indicate prescription is added
-        appointmentService.changeStatus(prescription.getAppointmentId());
+        // FIXED: changeStatus requires (Long, int). Passing 1 to mark as Completed/Prescribed.
+        appointmentService.changeStatus(prescription.getAppointmentId(), 1);
 
         // Save prescription
         return prescriptionService.savePrescription(prescription);
@@ -50,7 +49,6 @@ public class PrescriptionController {
 
     /**
      * Get prescription by appointment ID
-     * Endpoint: GET /{appointmentId}/{token}
      */
     @GetMapping("/{appointmentId}/{token}")
     public ResponseEntity<Map<String, Object>> getPrescription(

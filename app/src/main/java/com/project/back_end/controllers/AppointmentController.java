@@ -2,7 +2,8 @@ package com.project.back_end.controllers;
 
 import com.project.back_end.models.Appointment;
 import com.project.back_end.services.AppointmentService;
-import com.project.back_end.services.Service;
+import com.project.back_end.services.SharedService;
+import com.project.back_end.services.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,50 +11,46 @@ import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/appointments") // Base path for appointment endpoints
+@RequestMapping("/appointments")
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
-    private final Service service;
+    private final SharedService service;
+    private final TokenService tokenService;
 
-    // Constructor injection for AppointmentService and Service
-    public AppointmentController(AppointmentService appointmentService, Service service) {
+    public AppointmentController(AppointmentService appointmentService, 
+                                 SharedService service,
+                                 TokenService tokenService) {
         this.appointmentService = appointmentService;
         this.service = service;
+        this.tokenService = tokenService;
     }
 
-    /**
-     * Get appointments by date and patient name
-     * Only accessible by doctors
-     */
     @GetMapping("/{date}/{patientName}/{token}")
     public ResponseEntity<Map<String, Object>> getAppointments(
             @PathVariable String date,
             @PathVariable String patientName,
             @PathVariable String token
     ) {
-        // Validate doctor token
         ResponseEntity<Map<String, String>> tokenValidation = service.validateToken(token, "doctor");
         if (tokenValidation.getStatusCode().isError()) {
             return ResponseEntity.status(tokenValidation.getStatusCode())
                     .body(Map.of("message", "Invalid or expired token"));
         }
 
+        Long doctorId = tokenService.extractId(token); 
         LocalDate appointmentDate = LocalDate.parse(date);
-        Map<String, Object> appointments = appointmentService.getAppointment(patientName, appointmentDate, token);
+        
+        // Fixed: Correct parameter order - doctorId, date, patientName
+        Map<String, Object> appointments = appointmentService.getAppointments(doctorId, appointmentDate, patientName);
         return ResponseEntity.ok(appointments);
     }
 
-    /**
-     * Book a new appointment
-     * Only accessible by patients
-     */
     @PostMapping("/{token}")
     public ResponseEntity<Map<String, String>> bookAppointment(
             @RequestBody Appointment appointment,
             @PathVariable String token
     ) {
-        // Validate patient token
         ResponseEntity<Map<String, String>> tokenValidation = service.validateToken(token, "patient");
         if (tokenValidation.getStatusCode().isError()) {
             return ResponseEntity.status(tokenValidation.getStatusCode())
@@ -75,16 +72,11 @@ public class AppointmentController {
         }
     }
 
-    /**
-     * Update an existing appointment
-     * Only accessible by patients
-     */
     @PutMapping("/{token}")
     public ResponseEntity<Map<String, String>> updateAppointment(
             @RequestBody Appointment appointment,
             @PathVariable String token
     ) {
-        // Validate patient token
         ResponseEntity<Map<String, String>> tokenValidation = service.validateToken(token, "patient");
         if (tokenValidation.getStatusCode().isError()) {
             return ResponseEntity.status(tokenValidation.getStatusCode())
@@ -94,22 +86,18 @@ public class AppointmentController {
         return appointmentService.updateAppointment(appointment);
     }
 
-    /**
-     * Cancel an appointment
-     * Only accessible by patients
-     */
     @DeleteMapping("/{id}/{token}")
     public ResponseEntity<Map<String, String>> cancelAppointment(
-            @PathVariable long id,
+            @PathVariable Long id, 
             @PathVariable String token
     ) {
-        // Validate patient token
         ResponseEntity<Map<String, String>> tokenValidation = service.validateToken(token, "patient");
         if (tokenValidation.getStatusCode().isError()) {
             return ResponseEntity.status(tokenValidation.getStatusCode())
                     .body(Map.of("message", "Invalid or expired token"));
         }
 
-        return appointmentService.cancelAppointment(id, token);
+        Long patientId = tokenService.extractId(token);
+        return appointmentService.cancelAppointment(id, patientId);
     }
 }

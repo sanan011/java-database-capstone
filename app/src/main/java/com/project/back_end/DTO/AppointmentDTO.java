@@ -23,26 +23,23 @@ public class AppointmentDTO {
     private LocalDateTime endTime;
 
     // Constructor
-    public AppointmentDTO(Long id, Long doctorId, String doctorName,
-                          Long patientId, String patientName, String patientEmail,
-                          String patientPhone, String patientAddress,
-                          LocalDateTime appointmentTime, int status) {
-        this.id = id;
-        this.doctorId = doctorId;
-        this.doctorName = doctorName;
-        this.patientId = patientId;
-        this.patientName = patientName;
-        this.patientEmail = patientEmail;
-        this.patientPhone = patientPhone;
-        this.patientAddress = patientAddress;
-        this.appointmentTime = appointmentTime;
-        this.status = status;
-
-        // Compute derived fields
-        if (appointmentTime != null) {
-            this.appointmentDate = appointmentTime.toLocalDate();
-            this.appointmentTimeOnly = appointmentTime.toLocalTime();
-            this.endTime = appointmentTime.plusHours(1);
+    // Add this to AppointmentDTO.java
+    public AppointmentDTO(com.project.back_end.models.Appointment app) {
+        this.id = app.getId();
+        this.doctorId = app.getDoctor().getId();
+        this.doctorName = app.getDoctor().getName();
+        this.patientId = app.getPatient().getId();
+        this.patientName = app.getPatient().getName();
+        this.patientEmail = app.getPatient().getEmail();
+        this.patientPhone = app.getPatient().getPhone();
+        this.patientAddress = app.getPatient().getAddress();
+        this.appointmentTime = app.getAppointmentTime();
+        this.status = app.getStatus();
+        
+        if (this.appointmentTime != null) {
+            this.appointmentDate = this.appointmentTime.toLocalDate();
+            this.appointmentTimeOnly = this.appointmentTime.toLocalTime();
+            this.endTime = this.appointmentTime.plusHours(1);
         }
     }
 

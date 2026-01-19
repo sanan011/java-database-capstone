@@ -51,6 +51,14 @@ public class Appointment {
         return appointmentTime != null ? appointmentTime.toLocalTime() : null;
     }
 
+    public Long getDoctorId() {
+        return (doctor != null) ? doctor.getId() : null;
+    }
+
+    public Long getPatientId() {
+        return (patient != null) ? patient.getId() : null;
+    }
+
     /*Getters and Setters*/
 
     public Long getId() {

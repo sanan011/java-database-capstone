@@ -16,6 +16,10 @@ public class Login {
     }
 
     // Getters and Setters
+    public String getEmail() {
+        return identifier;
+    }
+    
     public String getIdentifier() {
         return identifier;
     }

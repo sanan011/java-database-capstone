@@ -3,7 +3,7 @@ package com.project.back_end.services;
 import com.project.back_end.models.Admin;
 import com.project.back_end.models.Appointment;
 import com.project.back_end.models.Patient;
-import com.project.back_end.models.Login;
+import com.project.back_end.DTO.Login;
 import com.project.back_end.repo.AdminRepository;
 import com.project.back_end.repo.DoctorRepository;
 import com.project.back_end.repo.PatientRepository;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class Service {
+public class SharedService { // Renamed from Service to SharedService
 
     private final TokenService tokenService;
     private final AdminRepository adminRepository;
@@ -25,7 +25,7 @@ public class Service {
     private final DoctorService doctorService;
     private final PatientService patientService;
 
-    public Service(TokenService tokenService,
+    public SharedService(TokenService tokenService,
                    AdminRepository adminRepository,
                    DoctorRepository doctorRepository,
                    PatientRepository patientRepository,
@@ -44,7 +44,8 @@ public class Service {
      */
     public ResponseEntity<Map<String, String>> validateToken(String token, String user) {
         Map<String, String> response = new HashMap<>();
-        boolean valid = tokenService.isValidToken(token);
+        // Fixed: Use validateToken or extractIdentifier based on your TokenService
+        boolean valid = tokenService.extractIdentifier(token) != null; 
         if (!valid) {
             response.put("message", "Unauthorized: Invalid or expired token");
             return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
@@ -70,6 +71,7 @@ public class Service {
                 return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
             }
 
+            // Fixed: TokenService needs a String here
             String token = tokenService.generateToken(admin.getUsername());
             response.put("token", token);
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -85,13 +87,15 @@ public class Service {
      * Filters doctors by name, specialty, and available time.
      */
     public Map<String, Object> filterDoctor(String name, String specialty, String time) {
-        return doctorService.filterDoctorsByNameSpecilityandTime(name, specialty, time);
+        // Fixed: Matching the long method name in DoctorService
+        return doctorService.filterDoctorsByNameSpecialtyAndTime(name, specialty, time);
     }
 
     /**
      * Validates if an appointment is available for booking.
      */
     public int validateAppointment(Appointment appointment) {
+        // Fixed: Ensure Appointment.java has getDoctorId() as we discussed
         if (!doctorRepository.existsById(appointment.getDoctorId())) return -1;
 
         List<String> availableSlots = doctorService.getDoctorAvailability(
@@ -115,7 +119,8 @@ public class Service {
     public ResponseEntity<Map<String, String>> validatePatientLogin(Login login) {
         Map<String, String> response = new HashMap<>();
         try {
-            Patient patient = patientRepository.findByEmail(login.getEmail());
+            // Fixed: Login.java now has getEmail() or use getIdentifier()
+            Patient patient = patientRepository.findByEmail(login.getIdentifier());
             if (patient == null || !patient.getPassword().equals(login.getPassword())) {
                 response.put("message", "Unauthorized: Invalid credentials");
                 return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
@@ -138,7 +143,11 @@ public class Service {
     public ResponseEntity<Map<String, Object>> filterPatient(String condition, String name, String token) {
         Map<String, Object> response = new HashMap<>();
         try {
-            return patientService.filterByDoctorAndCondition(condition, name, token);
+            // Fixed: patientService.filterByDoctorAndCondition requires (String, String, Long)
+            // You may need to extract the ID from the token first
+            String email = tokenService.extractIdentifier(token);
+            Patient p = patientRepository.findByEmail(email);
+            return patientService.filterByDoctorAndCondition(condition, name, p.getId());
         } catch (Exception e) {
             e.printStackTrace();
             response.put("message", "Internal Server Error");
